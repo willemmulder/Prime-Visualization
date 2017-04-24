@@ -2,12 +2,14 @@
     <head>
         <style>
             html, body { margin: 0px; padding: 0px; font: 16px verdana, arial, sans-serif; }
+                input, select, button { font: 16px verdana, arial, sans-serif; }
             html * { box-sizing: border-box; }
             #canvasContainer { position: absolute; left: 0px; top: 50px; right: 0px; bottom: 0px; }
             #canvas { width: 100%; height: 100%; }
             #header { padding: 10px; height: 50px; width: 100%; line-height: 30px; background: #292b2c; border-bottom: 1px solid #111; color: #fff; }
                 #title { float: right; }
-                a { color: #fff; text-decoration: none; margin-left: 10px; }
+                a { color: #fff; text-decoration: none; margin-left: 100px; }
+                #primeCount { width: 100px; }
         </style>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/4.4.3/pixi.min.js"></script>
         <script>
@@ -17,7 +19,7 @@
             var centerZoom = function(){};
 
             var visualizerName = 'snake';
-            var amountOfPrimes = 200000;
+            var amountOfPrimes = 100000;
             var zoomFactor = 4;
 
             var nonPrimeColor = 0x109910;
@@ -292,12 +294,14 @@
     </head>
     <body onload="ready();">
         <div id="header">
+            Rendering <input id="primeCount" type="number" onchange="amountOfPrimes=this.value;" value="100000" /> primes using the
             <select onchange="visualizerName=this.value; zoomFactor=1; centerZoom();">
                 <option value="linear">Linear</option>
                 <option value="snake" selected="true">Snake</option>
                 <option value="tree">Tree</option>
             </select>
-            <button onclick="visualize();">Render</button>
+            visualizer.
+            <button onclick="visualize();">Go</button>
             <small>
                 <a href='javascript:void(0);' onclick="zoomFactor=1; centerZoom(); render();">Reset and center zoom</a>
             </small>
