@@ -136,9 +136,9 @@
                         var posX = index % width;
                         var posY = Math.floor(index / width);
                         if (isPrime) {
-                            setColor(posX, posY, 0xFF1010);
+                            setColor(posX, posY, primeColor);
                         } else {
-                            setColor(posX, posY, 0x10FF10);
+                            setColor(posX, posY, nonPrimeColor);
                         }
                     }
                 },
@@ -191,9 +191,9 @@
                     return function(index, isPrime, setColor) {
                         // Draw current pixel
                         if (isPrime) {
-                            setColor(posX, posY, 0x6060FF);
+                            setColor(posX, posY, primeColor);
                         } else {
-                            setColor(posX, posY, 0x10FF10);
+                            setColor(posX, posY, nonPrimeColor);
                         }
                         //console.log('draw on ', posX, posY);
                         // Move to next pixel-spot
