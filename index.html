@@ -1,0 +1,312 @@
+<html>
+    <head>
+        <style>
+            html, body { margin: 0px; padding: 0px; font: 16px verdana, arial, sans-serif; }
+            html * { box-sizing: border-box; }
+            #canvasContainer { position: absolute; left: 0px; top: 50px; right: 0px; bottom: 0px; }
+            #canvas { width: 100%; height: 100%; }
+            #header { padding: 10px; height: 50px; width: 100%; line-height: 30px; background: #292b2c; border-bottom: 1px solid #111; color: #fff; }
+                #title { float: right; }
+                a { color: #fff; text-decoration: none; margin-left: 10px; }
+        </style>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/4.4.3/pixi.min.js"></script>
+        <script>
+            
+            var visualize = function(){};
+            var render = function(){};
+            var centerZoom = function(){};
+
+            var visualizerName = 'snake';
+            var amountOfPrimes = 200000;
+            var zoomFactor = 4;
+
+            var nonPrimeColor = 0x109910;
+            var primeColor = 0x30FF30;
+
+            var backgroundColor = 0XEEEEEE;
+
+            // The below function is called when the whole page is loaded and canvas is available
+            function ready() {
+                var canvas = document.getElementById('canvas');
+                // Set canvas height and width property, based on the real canvas height/width
+                setCanvasSize(canvas);
+                // Set up Pixi
+                var stage = new PIXI.Stage();
+                // Set zoom
+                centerZoom = function() {
+                    stage.x = canvas.clientWidth / 2 * (zoomFactor-1) * -1;
+                    stage.y = canvas.clientHeight / 2 * (zoomFactor-1) * -1;
+                    stage.scale.x = zoomFactor;
+                    stage.scale.y = zoomFactor;
+                }
+                centerZoom();
+                // Create renderer
+                var renderer = PIXI.autoDetectRenderer(canvas.clientWidth, canvas.clientHeight, {view:canvas}, false, true);
+                renderer.backgroundColor = backgroundColor;
+                var g = new PIXI.Graphics();
+                stage.addChild(g);
+                renderer.render(stage);
+                // Respond to window resizes
+                window.addEventListener("resize", function(e) {
+                    renderer.resize(canvas.clientWidth, canvas.clientHeight);
+                    setCanvasSize(canvas);
+                    render();
+                });
+                // Enable zooming
+                canvas.addEventListener("wheel", function(e) {
+                    e.preventDefault();
+                    // Calculate zoom
+                    if (e.deltaY > 0) {
+                        zoomFactor = zoomFactor / 1.2;
+                    } else {
+                        zoomFactor = zoomFactor * 1.2;
+                    }
+                    var newScale = {x:zoomFactor,y:zoomFactor};
+                    // Calculate current mouse position in world, scaled
+                    var worldPos = {x: (e.offsetX - stage.x) / stage.scale.x, y: (e.offsetY - stage.y)/stage.scale.y};
+                    // Calculate new mouse position, scaled
+                    var newScreenPos = {x: (worldPos.x) * newScale.x + stage.x, y: (worldPos.y) * newScale.y + stage.y};
+                    // Set x,y and scale
+                    stage.x -= (newScreenPos.x-e.offsetX) ;
+                    stage.y -= (newScreenPos.y-e.offsetY) ;
+                    stage.scale.x = newScale.x;
+                    stage.scale.y = newScale.y;
+                    // Redraw image from buffer
+                    renderer.render(stage);
+                });
+                // Enable mousemoving
+                var lastPos = null;
+                canvas.addEventListener("mousedown", function(e) {
+                    lastPos = {x:e.offsetX,y:e.offsetY};
+                });
+                canvas.addEventListener("mouseup", function(e) {
+                    lastPos = null;
+                });
+                var renderTimeout;
+                canvas.addEventListener("mousemove", function(e){
+                    if(lastPos) {
+                        stage.x += (e.offsetX-lastPos.x);
+                        stage.y += (e.offsetY-lastPos.y);  
+                        lastPos = {x:e.offsetX,y:e.offsetY};
+                        if (!renderTimeout) {
+                            renderTimeout = setTimeout(function() {
+                                renderer.render(stage);
+                                renderTimeout = null;
+                            },10);
+                        }
+                    }
+                });
+
+                render = function() {
+                    renderer.render(stage);
+                }
+                
+                // Export render function
+                visualize = function() {
+                    // Clear pixi
+                    g.clear();
+                    // Get visualizer
+                    var visualizer = visualizers[visualizerName](canvas.width, canvas.height);
+                    // Now get primes and draw on the canvas
+                    function setColor(x, y, color) {
+                        g.lineStyle(0, 0x0000FF);
+                        g.beginFill(color);
+                        g.drawRect(x, y, 1, 1);
+                        g.endFill();
+                    }
+                    getPrimes(amountOfPrimes, function(index, isPrime) {
+                        visualizer(index, isPrime, setColor);
+                    });
+                    // Draw to screen
+                    render();
+                }
+
+                // Run
+                visualize();
+            }
+
+            // =====
+            // Visualizers
+            // =====
+            var visualizers = {
+                "linear" : function(width, height) {
+                    return function(index, isPrime, setColor) {
+                        var posX = index % width;
+                        var posY = Math.floor(index / width);
+                        if (isPrime) {
+                            setColor(posX, posY, 0xFF1010);
+                        } else {
+                            setColor(posX, posY, 0x10FF10);
+                        }
+                    }
+                },
+                "snake" : function(width, height) {
+                    var posX = Math.round(width / 2);
+                    var posY = Math.round(height / 2);
+                    var directionX = 0;
+                    var directionY = 1; // 1 is up
+                    return function(index, isPrime, setColor) {
+                        // Set direction
+                        if (isPrime) {
+                            // Turn right
+                            if (directionX == 0 && directionY == 1) {
+                                // From up to right
+                                directionX = 1;
+                                directionY = 0;
+                            } else if (directionX == 1 && directionY == 0) {
+                                // From right to down
+                                directionX = 0;
+                                directionY = -1;
+                            } else if (directionX == 0 && directionY == -1) {
+                                // From down to left
+                                directionX = -1;
+                                directionY = 0;
+                            } else if (directionX == -1 && directionY == 0) {
+                                // From left to up
+                                directionX = 0;
+                                directionY = 1;
+                            } 
+                        }
+                        // Move
+                        posX += directionX;
+                        posY += directionY;
+                        // Draw pixels
+                        if (isPrime) {
+                            setColor(posX, posY, primeColor);
+                        } else {
+                            setColor(posX, posY, nonPrimeColor);
+                        }
+                    }
+                },
+                "tree" : function(width, height) {
+                    // This is the Ulam spiral
+                    var posX = Math.round(width / 2);
+                    var posY = Math.round(height / 2);
+                    var directionX = 0;
+                    var directionY = 1; // 1 is up
+                    var wrapCounter = 1;
+                    var currentSideLength = 1;
+                    return function(index, isPrime, setColor) {
+                        // Draw current pixel
+                        if (isPrime) {
+                            setColor(posX, posY, 0x6060FF);
+                        } else {
+                            setColor(posX, posY, 0x10FF10);
+                        }
+                        //console.log('draw on ', posX, posY);
+                        // Move to next pixel-spot
+                        // Increase length of this side, then check if we should turn instead
+                        var intendedSideLength = wrapCounter*2;
+                        currentSideLength++;
+                        //console.log(currentSideLength, intendedSideLength);
+                        if (currentSideLength > intendedSideLength) {
+                            // Turn right
+                            if (directionX == 0 && directionY == 1) {
+                                // From up to right
+                                directionX = 1;
+                                directionY = 0;
+                                //console.log('go right!');
+                                currentSideLength = 1;
+                            } else if (directionX == 1 && directionY == 0) {
+                                // From right to down
+                                directionX = 0;
+                                directionY = -1;
+                                //console.log('go down!');
+                                currentSideLength = 1;
+                            } else if (directionX == 0 && directionY == -1) {
+                                // From down to left
+                                directionX = -1;
+                                directionY = 0;
+                                //console.log('go left!');
+                                currentSideLength = 1;
+                            } else if (directionX == -1 && directionY == 0) {
+                                // From left to up
+                                // Yes, but move one more left, and THEN go up
+                                if (currentSideLength > intendedSideLength+1) {
+                                    directionX = 0;
+                                    directionY = 1;
+                                    wrapCounter++;
+                                    //console.log('go up again!');
+                                    // Set current side length to 2, because this line will be one shorter, so it should turn 1 earlier
+                                    currentSideLength = 2;
+                                } else {
+                                    //console.log('continue for one tick');
+                                }
+                            }
+                        }
+                        // Move
+                        posX += directionX;
+                        posY += directionY;
+                        //console.log('next pixel on ', posX, posY);
+                    }
+                }
+            }
+
+            // =====
+            // Helper functions
+            // =====
+
+            function setCanvasSize(canvas) {
+                var canvasWidth = canvas.clientWidth;
+                var canvasHeight = canvas.clientHeight;
+                canvas.width = canvasWidth;
+                canvas.height = canvasHeight;
+            }
+
+            function getPrimes(max, callback) {
+                var sieve = [], i, j, primes = [];
+                for (i = 2; i <= max; ++i) {
+                    if (!sieve[i]) {
+                        // i has not been marked -- it is prime
+                        callback(i, true);
+                        primes.push(i);
+                        for (j = i << 1; j <= max; j += i) {
+                            sieve[j] = true;
+                        }
+                    } else {
+                        callback(i, false);
+                    }
+                }
+                return primes;
+            }
+
+            function setPixelOnCanvas(context2d, tempImageData, x, y, color) {
+                tempImageData.data[0]   = color.r;
+                tempImageData.data[1]   = color.g;
+                tempImageData.data[2]   = color.b;
+                tempImageData.data[3]   = color.a;
+                context2d.putImageData( tempImageData, x, y );
+            }
+
+            function draw(context, imageData, tempImageData) {
+                for(var y in imageData) {
+                    var line = imageData[y];
+                    for(var x in line) {
+                        var color = line[x];
+                        setPixelOnCanvas(context, tempImageData, x, y, color);
+                    }
+                }
+            }
+
+        </script>
+    </head>
+    <body onload="ready();">
+        <div id="header">
+            <select onchange="visualizerName=this.value; zoomFactor=1; centerZoom();">
+                <option value="linear">Linear</option>
+                <option value="snake" selected="true">Snake</option>
+                <option value="tree">Tree</option>
+            </select>
+            <button onclick="visualize();">Render</button>
+            <small>
+                <a href='javascript:void(0);' onclick="zoomFactor=1; centerZoom(); render();">Reset and center zoom</a>
+            </small>
+            <div id="title">
+                Prime Visualization
+            </div>
+        </div>
+        <div id="canvasContainer">
+            <canvas id="canvas"></canvas>
+        </div>
+    </body>
+</html>
